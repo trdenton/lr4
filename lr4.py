@@ -33,9 +33,23 @@ class LR4:
     cmd[0]=LR4.CMD_GET_CONFIG
     self.write(cmd)
     self.config=self.read()
-    print self.config
+    #print self.config
     #config = result[1] + (result[2]<<8) + (status[3]<<16) + (status[4]<<24)
     #return config
+
+
+  '''
+  write configuration - expects array config
+  '''
+  def writeConfig(self,cmd):
+    self.write(cmd)
+    self.readConfig()
+    #occasionally it seems to get misconfigured?
+    # note that equality of cmd and config hinges on the first byte being the same, which is coincidental, but convenient
+    while (cmd != self.config): 
+      self.write(cmd)
+      self.readConfig()
+      time.sleep(0.1)
 
   '''
   set rangefinder to single mode, trigger on run bit
@@ -45,21 +59,12 @@ class LR4:
     cfg1 = self.config[1]
     cfg1 &= ~0x10
     cfg1 |= 0x08
-    cmd = [LR4.CMD_SET_CONFIG,0b00001000,0x00000000,self.config[3],self.config[4],0,0,0]
-    self.write(cmd)
-    self.readConfig()
-    #occasionally it seems to get misconfigured?
-    # note that equality of cmd and config hinges on the first byte being the same, which is coincidental, but convenient
-    while (cmd != self.config): 
-      self.write(cmd)
-      self.readConfig()
-      time.sleep(0.1)
-      
+    cmd = [LR4.CMD_SET_CONFIG,0b00001000,0x00,0x00,0x00,0,0,0]
+    self.writeConfig(cmd)
 
     cmd = [0]*8
     cmd[0] = LR4.CMD_WRITE_CONFIG
     self.write(cmd)
-    self.readConfig()
 
       
   def startMeasurement(self):
@@ -80,10 +85,6 @@ class LR4:
 
 if __name__=="__main__":
   lr4 = LR4("/dev/hidraw5")
-  try:
-    while True:
-      print "%d mm"%lr4.measure()
-  except KeyboardInterrupt:
-    lr4.endMeasurement()
-    lr4.close()
-  print "See ya"
+  print "%d mm"%lr4.measure()
+  lr4.endMeasurement()
+  lr4.close()
