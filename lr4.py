@@ -41,9 +41,9 @@ class LR4:
   def _write(self,arr):
     return self.fh.write(bytearray(arr))
  
- '''
- Read in configuration data from the LR4
- '''
+  '''
+  Read in configuration data from the LR4
+  '''
   def _readConfig(self):
     cmd = [0]*8
     cmd[0]=LR4.CMD_GET_CONFIG
