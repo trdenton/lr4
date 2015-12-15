@@ -1,11 +1,11 @@
 #!/usr/bin/python
+import subprocess
 import time
-import binascii
 '''
 Python class for reading LR4 sensor
 '''
 
-class LR4:
+class LR4(object):
 
   '''
   communication defines
@@ -14,6 +14,43 @@ class LR4:
   CMD_SET_CONFIG=0x01
   CMD_WRITE_CONFIG=0x02
   CMD_GET_PRODUCT_INFO=0x03
+
+  '''
+  get devices that match our laser rangefinder via dmesg.
+ 
+  yes this is greasy.  but a stopgap until a more elegant solution is found
+  :returns: array of hidraw devices likely to be our LR4 device
+  '''
+  @staticmethod
+  def _getHIDRawDevices():
+    cmd="dmesg | grep 'Porcupine Electronics LR4' | grep -vi keyboard | sed -ne 's/.*hidraw\([^:]*\).*/\\1/p' | sort | uniq"
+    output=subprocess.check_output(cmd,shell=True)
+    lines=str.split(output,'\n')
+    linesHIDRaw=[]
+    for line in lines:
+      if line != "":
+        linesHIDRaw.append("/dev/hidraw%s"%line.rstrip())
+    return linesHIDRaw
+
+  
+  '''
+  get device by serial number
+  :param serial: the ascii serial number of the device
+  : returns LR4: lr4 object, or None if no match was found
+  '''
+  @staticmethod
+  def getDevice(serialNum):
+    hids=LR4._getHIDRawDevices()
+    device=None
+    for h in hids:
+      device=LR4(h)
+      if (str(device.getSerialNumber().strip()) == str(serialNum.strip())):
+        break
+      else:
+        device.close()
+        device=None 
+      
+    return device
 
   '''
   Initialize the LR4
@@ -37,7 +74,7 @@ class LR4:
     return map(ord,self.fh.read(8))
 
   '''
-  
+  read raw bytes 
   '''
   def _readBytes(self):
     return self.fh.read(8)
@@ -110,7 +147,7 @@ class LR4:
 
     res = res1[2:] + res2[2:5]
 
-    return str(res)
+    return str(res).rstrip(' \t\r\n\0')
       
   '''
   begin a distance measurement
@@ -138,7 +175,7 @@ class LR4:
     return int(( dat[2]<<8 ) + dat[1])
 
 if __name__=="__main__":
-  lr4 = LR4("/dev/hidraw5")
-  print "%d mm"%lr4.measure()
-  print lr4.getSerialNumber()
-  lr4.close()
+  lr4 =  LR4.getDevice("001814")
+  if lr4 is not None:
+  	print "%d mm"%lr4.measure()
+  	lr4.close()
