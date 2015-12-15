@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import time
+import binascii
 '''
 Python class for reading LR4 sensor
 '''
@@ -12,6 +13,7 @@ class LR4:
   CMD_GET_CONFIG=0x00
   CMD_SET_CONFIG=0x01
   CMD_WRITE_CONFIG=0x02
+  CMD_GET_PRODUCT_INFO=0x03
 
   '''
   Initialize the LR4
@@ -33,6 +35,12 @@ class LR4:
   '''
   def _read(self):
     return map(ord,self.fh.read(8))
+
+  '''
+  
+  '''
+  def _readBytes(self):
+    return self.fh.read(8)
 
   '''
   Write to the LR4
@@ -83,6 +91,26 @@ class LR4:
     cmd[0] = LR4.CMD_WRITE_CONFIG
     self._write(cmd)
 
+  
+  '''
+  get Serial Number from device
+  :returns: serial number string
+  '''
+  def getSerialNumber(self):
+    #get first 6 bytes of PRODUCT_INFO.SERIAL_NUMBER
+    cmd=[0]*8
+    cmd[0]=LR4.CMD_GET_PRODUCT_INFO
+    cmd[1]=70
+    self._write(cmd)
+    res1=self._readBytes()
+    #get next 4 bytes of PRODUCT_INFO.SERIAL_NUMBER
+    cmd[1]=76
+    self._write(cmd)
+    res2=self._readBytes()
+
+    res = res1[2:] + res2[2:5]
+
+    return str(res)
       
   '''
   begin a distance measurement
@@ -112,4 +140,5 @@ class LR4:
 if __name__=="__main__":
   lr4 = LR4("/dev/hidraw5")
   print "%d mm"%lr4.measure()
+  print lr4.getSerialNumber()
   lr4.close()
