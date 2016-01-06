@@ -33,6 +33,10 @@ class LR4(object):
     return linesHIDRaw
 
   
+  @staticmethod
+  def listDevices():
+    return LR4._getHIDRawDevices()
+
   '''
   get device by serial number
   :param serial: the ascii serial number of the device
@@ -175,7 +179,16 @@ class LR4(object):
     return int(( dat[2]<<8 ) + dat[1])
 
 if __name__=="__main__":
-  lr4 =  LR4.getDevice("001814")
-  if lr4 is not None:
-  	print "%d mm"%lr4.measure()
-  	lr4.close()
+#  l = LR4('/dev/hidraw10')
+#  print "%s is serial number '%s'"%(dev,l.getSerialNumber())
+#  l.close()
+  devices = LR4.listDevices()
+  print devices
+  for dev in devices:
+    try:
+      l = LR4(dev)
+      print "%s is serial number '%s'"%(dev,l.getSerialNumber())
+      print "\t%d mm"%l.measure()
+      l.close()
+    except IndexError as e:
+      print "\tfuck" 
