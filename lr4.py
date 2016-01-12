@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import usb
 import subprocess
 import time
 '''
@@ -8,6 +9,14 @@ Python class for reading LR4 sensor
 class LR4(object):
 
   '''
+  usb details
+  '''
+  ID_VENDOR=0x0417
+  ID_PRODUCT=0xdd03
+  INTERFACE_NUM=0
+  ENDPOINT_IN=0x81
+  ENDPOINT_OUT=0x02
+  '''
   communication defines
   '''
   CMD_GET_CONFIG=0x00
@@ -16,26 +25,17 @@ class LR4(object):
   CMD_GET_PRODUCT_INFO=0x03
 
   '''
-  get devices that match our laser rangefinder via dmesg.
  
-  yes this is greasy.  but a stopgap until a more elegant solution is found
-  :returns: array of hidraw devices likely to be our LR4 device
+  :returns: array of usb devices likely to be our LR4 device
   '''
   @staticmethod
-  def _getHIDRawDevices():
-    cmd="dmesg | grep 'Porcupine Electronics LR4' | grep -vi keyboard | sed -ne 's/.*hidraw\([^:]*\).*/\\1/p' | sort | uniq"
-    output=subprocess.check_output(cmd,shell=True)
-    lines=str.split(output,'\n')
-    linesHIDRaw=[]
-    for line in lines:
-      if line != "":
-        linesHIDRaw.append("/dev/hidraw%s"%line.rstrip())
-    return linesHIDRaw
+  def _getDevices():
+    return map(LR4,list(usb.core.find(find_all=True,idVendor=LR4.ID_VENDOR, idProduct=LR4.ID_PRODUCT)))
 
   
   @staticmethod
   def listDevices():
-    return LR4._getHIDRawDevices()
+    return LR4._getDevices()
 
   '''
   get device by serial number
@@ -60,8 +60,12 @@ class LR4(object):
   Initialize the LR4
   :param filename: the filehandle of the hidraw device used by the LR4
   '''
-  def __init__(self,filename):
-    self.fh = open(filename,"wb+")
+  def __init__(self,dev):
+    self.usbDevice=dev
+    self.usbDevice.reset()
+    if(self.usbDevice.is_kernel_driver_active(LR4.INTERFACE_NUM)):
+      self.usbDevice.detach_kernel_driver(LR4.INTERFACE_NUM)
+    #self.usbDevice.set_configuration()
     self._readConfig()
     self._configSingleMode()
 
@@ -69,26 +73,31 @@ class LR4(object):
   Close the filehandle associated with the LR4
   '''
   def close(self):
-    return self.fh.close()
+    self.usbDevice.reset()
+    self.usbDevice.releaseInterface()
+    #return self.usbDevice.attach_kernel_driver(LR4.INTERFACE_NUM)
 
   '''
   Read from the LR4
   '''
   def _read(self):
-    return map(ord,self.fh.read(8))
+    #x=self.epin.read(8,timeout=1000)
+    #return x
+    return list(self.usbDevice.read(LR4.ENDPOINT_IN,8,timeout=1000))
+
 
   '''
   read raw bytes 
   '''
   def _readBytes(self):
-    return self.fh.read(8)
+    return list(self.usbDevice.read(LR4.ENDPOINT_IN,8,timeout=1000))
 
   '''
   Write to the LR4
   :param arr: array of ints to write to LR4
   '''
   def _write(self,arr):
-    return self.fh.write(bytearray(arr))
+    return self.usbDevice.write(LR4.ENDPOINT_OUT,bytearray(arr))
  
   '''
   Read in configuration data from the LR4
@@ -98,10 +107,9 @@ class LR4(object):
     cmd[0]=LR4.CMD_GET_CONFIG
     self._write(cmd)
     self.config=self._read()
-    return self.config
-    #print self.config
     #config = result[1] + (result[2]<<8) + (status[3]<<16) + (status[4]<<24)
     #return config
+    return self.config
 
 
   '''
@@ -113,9 +121,15 @@ class LR4(object):
     #occasionally it seems to get misconfigured?
     # note that equality of cmd and config hinges on the first byte being the same, which is coincidental, but convenient
     while (cmd != self.config): 
+#      print "CMD"
+#      print cmd
+#      print type(cmd)
+#      print "CFG"
+#      print self.config
+#      print type(self.config)
       self._write(cmd)
       self._readConfig()
-      time.sleep(0.1)
+      time.sleep(0.5)
 
   '''
   set rangefinder to single mode, trigger on run bit
@@ -183,12 +197,10 @@ if __name__=="__main__":
 #  print "%s is serial number '%s'"%(dev,l.getSerialNumber())
 #  l.close()
   devices = LR4.listDevices()
-  print devices
-  for dev in devices:
+  #print devices
+  for (i,dev) in enumerate(devices):
     try:
-      l = LR4(dev)
-      print "%s is serial number '%s'"%(dev,l.getSerialNumber())
-      print "\t%d mm"%l.measure()
-      l.close()
+      print "%s: serial number '%s'"%(i,dev.getSerialNumber())
+      print "\t%d mm"%dev.measure()
     except IndexError as e:
       print "\tfuck" 

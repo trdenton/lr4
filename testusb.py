@@ -1,20 +1,25 @@
 import sys
+import time
 import usb.core
 import usb.util
+from lr4 import LR4
+
 
 # find our device
-dev = usb.core.find(idVendor=0x0417, idProduct=0xdd03)
+for dev in usb.core.find(find_all=True,idVendor=0x0417, idProduct=0xdd03):
+  print dev
 
+sys.exit()
 # was it found?
 if dev is None:
     raise ValueError('Device not found')
 
-else:
-    print dev
-
+print dev
 # set the active configuration. With no arguments, the first
 # configuration will be the active one
+sys.exit()
 dev.set_configuration()
+
 
 #    INTERFACE 0: Human Interface Device ====================
 #     bLength            :    0x9 (9 bytes)
@@ -61,11 +66,9 @@ ep_in = usb.util.find_descriptor(
 #assert ep is not None
 #
 # write the data
-print "EP OUT"
-print ep_out
 
-for i in range(10):
-  print
-
-print "EP IN"
-print ep_in
+lr4 = LR4(ep_in,ep_out)
+print lr4.getSerialNumber()
+while True:
+  print lr4.measure()  
+  time.sleep(0.5)
