@@ -2,14 +2,14 @@
 Basic python interface for single-shot measurements from Porcupine Labs LR4 unit
 
 ##Prerequisites
-
-Need to install pyusb 1.0 or greater!
-
-pip install --pre pyusb
+* only tested on Ubuntu Desktop 14.04 LTS at the moment
+* requires python 2.7
+* requires pyusb 1.0 or greater
+ * pip install --pre pyusb
 
 ##Device Permissions
 You will either need to run your program as root, or add a udev rule:
-###/etc/udev/rules.d/laser.rules
+**/etc/udev/rules.d/laser.rules**
 `ACTION=="add",SUBSYSTEMS=="usb",ATTRS{idVendor}=="0417",ATTRS{idProduct}=="dd03",GROUP="plugdev"`
 
 make sure to add yourself to the `plugdev` group:
