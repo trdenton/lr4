@@ -39,22 +39,26 @@ class LR4(object):
 
   '''
   get device by serial number
-  :param serial: the ascii serial number of the device
+  :param serial: the serial number of the device (string)
   : returns LR4: lr4 object, or None if no match was found
   '''
   @staticmethod
-  def getDevice(serialNum):
-    hids=LR4._getHIDRawDevices()
-    device=None
-    for h in hids:
-      device=LR4(h)
-      if (str(device.getSerialNumber().strip()) == str(serialNum.strip())):
-        break
+  def getDevice(serialNum=None):
+    devices=LR4._getDevices()
+    if devices != []:
+      if serialNum is None:  #return first device found if no serial num specified
+        return devices[0]
       else:
-        device.close()
-        device=None 
-      
-    return device
+        device=None
+        for dev in devices:
+          if (str(dev.getSerialNumber().strip()) == str(serialNum.strip())):
+            device=dev 
+            break
+          else:
+            dev.close()
+        return device
+    else:
+      return None  #no device found
 
   '''
   Initialize the LR4
@@ -74,8 +78,7 @@ class LR4(object):
   '''
   def close(self):
     self.usbDevice.reset()
-    self.usbDevice.releaseInterface()
-    #return self.usbDevice.attach_kernel_driver(LR4.INTERFACE_NUM)
+    return self.usbDevice.attach_kernel_driver(LR4.INTERFACE_NUM)
 
   '''
   Read from the LR4
@@ -86,11 +89,6 @@ class LR4(object):
     return list(self.usbDevice.read(LR4.ENDPOINT_IN,8,timeout=1000))
 
 
-  '''
-  read raw bytes 
-  '''
-  def _readBytes(self):
-    return list(self.usbDevice.read(LR4.ENDPOINT_IN,8,timeout=1000))
 
   '''
   Write to the LR4
@@ -121,12 +119,6 @@ class LR4(object):
     #occasionally it seems to get misconfigured?
     # note that equality of cmd and config hinges on the first byte being the same, which is coincidental, but convenient
     while (cmd != self.config): 
-#      print "CMD"
-#      print cmd
-#      print type(cmd)
-#      print "CFG"
-#      print self.config
-#      print type(self.config)
       self._write(cmd)
       self._readConfig()
       time.sleep(0.5)
@@ -157,15 +149,14 @@ class LR4(object):
     cmd[0]=LR4.CMD_GET_PRODUCT_INFO
     cmd[1]=70
     self._write(cmd)
-    res1=self._readBytes()
+    res1=self._read()
     #get next 4 bytes of PRODUCT_INFO.SERIAL_NUMBER
     cmd[1]=76
     self._write(cmd)
-    res2=self._readBytes()
-
+    res2=self._read()
     res = res1[2:] + res2[2:5]
-
-    return str(res).rstrip(' \t\r\n\0')
+    serialNum = ''.join(map(chr,res))
+    return serialNum.rstrip(' \t\r\n\0')
       
   '''
   begin a distance measurement
@@ -192,15 +183,40 @@ class LR4(object):
     self._endMeasurement()
     return int(( dat[2]<<8 ) + dat[1])
 
+def testOutput(dev):
+    try:
+      print "serial number '%s'"%(dev.getSerialNumber())
+      print "\t%d mm"%dev.measure()
+    except Exception as e:
+      print "\tfuck" 
+
+def testMultiDevices():
+  devices = LR4.listDevices()
+  #print devices
+  for dev in devices:
+    if dev is not None:
+      testOutput(dev)
+      dev.close()
+  
+
+def testSingleDevice(serial=None):
+  if serial is not None:
+    dev = LR4.getDevice(serialNum=serial)
+  else:
+    dev = LR4.getDevice()
+  if (dev is not None):
+    testOutput(dev)
+    dev.close()
+
+
 if __name__=="__main__":
 #  l = LR4('/dev/hidraw10')
 #  print "%s is serial number '%s'"%(dev,l.getSerialNumber())
 #  l.close()
-  devices = LR4.listDevices()
-  #print devices
-  for (i,dev) in enumerate(devices):
-    try:
-      print "%s: serial number '%s'"%(i,dev.getSerialNumber())
-      print "\t%d mm"%dev.measure()
-    except IndexError as e:
-      print "\tfuck" 
+  print "test single device, auto"
+  testSingleDevice()
+  print "test single device, specified"
+  testSingleDevice(serial='001980')
+  print "test multiple devices"
+  testMultiDevices()
+
