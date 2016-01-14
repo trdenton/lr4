@@ -205,7 +205,7 @@ def testOutput(dev):
       print "serial number '%s'"%(dev.getSerialNumber())
       print "\t%d mm"%dev.measure()
     except Exception as e:
-      print "\tfuck" 
+      print "\terr" 
 
 
 '''
