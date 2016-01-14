@@ -25,6 +25,21 @@ Currently tested/working on ubuntu desktop 14.04 LTS 64 bit, python 2.7.
 
 Running `python lr4.py` will perform a test of the module (ensure you have followed the directions under *Device Permissions* and have an LR4 unit plugged in)
 
+## Examples
+
+
+```
+from lr4 import LR4
+
+dev = LR4.getDevice()
+
+print "Serial number: %s"%dev.getSerialNumber()
+print "Distance: %dmm"%dev.measure()
+
+dev.close()
+
+```
+
 ##License
 Copyright (c) 2016 Troy Denton
 
