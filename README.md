@@ -2,6 +2,7 @@
 Basic python interface for Porcupine Labs LR4 unit
 http://www.porcupinelabs.com/lr4
 
+MIT licensed
 
 ##Prerequisites
 * only tested on Ubuntu Desktop 14.04 LTS at the moment
@@ -23,3 +24,12 @@ make sure to add yourself to the `plugdev` group:
 Currently tested/working on ubuntu desktop 14.04 LTS 64 bit, python 2.7. 
 
 Running `python lr4.py` will perform a test of the module (ensure you have followed the directions under *Device Permissions* and have an LR4 unit plugged in)
+
+##License
+Copyright (c) 2016 Troy Denton
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
