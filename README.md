@@ -1,5 +1,6 @@
 #lr4.py
-Basic python interface for single-shot measurements from Porcupine Labs LR4 unit
+Basic python interface for Porcupine Labs LR4 unit
+http://www.porcupinelabs.com/lr4
 
 
 ##Prerequisites
@@ -10,10 +11,12 @@ Basic python interface for single-shot measurements from Porcupine Labs LR4 unit
 
 ##Device Permissions
 You will either need to run your program as root, or add a udev rule:
-**/etc/udev/rules.d/laser.rules**
+
+**/etc/udev/rules.d/laser.rules:**
 `ACTION=="add",SUBSYSTEMS=="usb",ATTRS{idVendor}=="0417",ATTRS{idProduct}=="dd03",GROUP="plugdev"`
 
 make sure to add yourself to the `plugdev` group:
+
 `sudo usermod -aG plugdev <your username>`
 
 ##Known working environments
