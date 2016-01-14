@@ -26,18 +26,35 @@ Currently tested/working on ubuntu desktop 14.04 LTS 64 bit, python 2.7.
 Running `python lr4.py` will perform a test of the module (ensure you have followed the directions under *Device Permissions* and have an LR4 unit plugged in)
 
 ## Examples
+Get first device, read distance:
+```
+from lr4 import LR4
+dev = LR4.getDevice()
+print "Serial number: %s"%dev.getSerialNumber()
+print "Distance: %dmm"%dev.measure()
+dev.close()
+```
 
+Read distance from all devices:
+```
+from lr4 import LR4
+for dev in LR4.listDevices():
+ 
+  print "Serial number: %s"%dev.getSerialNumber()
+  print "Distance: %dmm"%dev.measure()
+  print "****************************"
+  dev.close()
+```
 
+Read a specific distance sensor:
 ```
 from lr4 import LR4
 
-dev = LR4.getDevice()
-
-print "Serial number: %s"%dev.getSerialNumber()
-print "Distance: %dmm"%dev.measure()
-
-dev.close()
-
+dev = LR4.getDevice(serialNum="001980")
+if dev is not None:
+  print "Serial number: %s"%dev.getSerialNumber()
+  print "Distance: %dmm"%dev.measure()
+  dev.close()
 ```
 
 ##License
