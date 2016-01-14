@@ -1,9 +1,9 @@
 #!/usr/bin/python
 import usb
-import subprocess
 import time
+
 '''
-Python class for reading LR4 sensor
+Python class for reading LR4 sensor from porcupine labs
 '''
 
 class LR4(object):
@@ -25,8 +25,7 @@ class LR4(object):
   CMD_GET_PRODUCT_INFO=0x03
 
   '''
- 
-  :returns: array of usb devices likely to be our LR4 device
+  :returns: array of usb devices corresponding to the LR4 from porcupine labs
   '''
   @staticmethod
   def _getDevices():
@@ -38,8 +37,8 @@ class LR4(object):
     return LR4._getDevices()
 
   '''
-  get device by serial number
-  :param serial: the serial number of the device (string)
+  get device 
+  :param serial: the serial number of the device (string).  If not specified, returns the first device found
   : returns LR4: lr4 object, or None if no match was found
   '''
   @staticmethod
@@ -62,26 +61,26 @@ class LR4(object):
 
   '''
   Initialize the LR4
-  :param filename: the filehandle of the hidraw device used by the LR4
+  :param dev: usb.core.Device instance corresponding to the LR4
   '''
   def __init__(self,dev):
     self.usbDevice=dev
     self.usbDevice.reset()
     if(self.usbDevice.is_kernel_driver_active(LR4.INTERFACE_NUM)):
       self.usbDevice.detach_kernel_driver(LR4.INTERFACE_NUM)
-    #self.usbDevice.set_configuration()
     self._readConfig()
     self._configSingleMode()
 
   '''
-  Close the filehandle associated with the LR4
+  Close the device
   '''
   def close(self):
     self.usbDevice.reset()
     return self.usbDevice.attach_kernel_driver(LR4.INTERFACE_NUM)
 
   '''
-  Read from the LR4
+  Read bytes from the LR4
+  :returns: list of 8 bytes as read from the LR4
   '''
   def _read(self):
     #x=self.epin.read(8,timeout=1000)
@@ -112,6 +111,7 @@ class LR4(object):
 
   '''
   write configuration to device
+  :param cmd: bytearray to write to the device
   '''
   def _writeConfig(self,cmd):
     self._write(cmd)
@@ -183,6 +183,11 @@ class LR4(object):
     self._endMeasurement()
     return int(( dat[2]<<8 ) + dat[1])
 
+
+'''
+test output function.  Just a helper for the other test* functions
+:param dev: LR4 object to test
+'''
 def testOutput(dev):
     try:
       print "serial number '%s'"%(dev.getSerialNumber())
@@ -190,6 +195,10 @@ def testOutput(dev):
     except Exception as e:
       print "\tfuck" 
 
+
+'''
+test ability to query multiple devices
+'''
 def testMultiDevices():
   devices = LR4.listDevices()
   #print devices
@@ -198,7 +207,9 @@ def testMultiDevices():
       testOutput(dev)
       dev.close()
   
-
+'''
+test ability to retrieve single device
+'''
 def testSingleDevice(serial=None):
   if serial is not None:
     dev = LR4.getDevice(serialNum=serial)
