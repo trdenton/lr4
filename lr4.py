@@ -165,6 +165,7 @@ class LR4(object):
 
     res = res1[2:] + res2[2:5]
 
+    serialNum = "".join(map(ord,res))
     return str(res).rstrip(' \t\r\n\0')
       
   '''
