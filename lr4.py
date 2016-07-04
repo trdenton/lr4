@@ -1,9 +1,21 @@
 #!/usr/bin/python
 import usb
-import subprocess
 import time
+
 '''
-Python class for reading LR4 sensor
+Copyright (c) 2016 Troy Denton
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+'''
+
+
+
+'''
+Python class for reading LR4 sensor from porcupine labs
 '''
 
 class LR4(object):
@@ -25,8 +37,7 @@ class LR4(object):
   CMD_GET_PRODUCT_INFO=0x03
 
   '''
- 
-  :returns: array of usb devices likely to be our LR4 device
+  :returns: array of usb devices corresponding to the LR4 from porcupine labs
   '''
   @staticmethod
   def _getDevices():
@@ -38,47 +49,50 @@ class LR4(object):
     return LR4._getDevices()
 
   '''
-  get device by serial number
-  :param serial: the ascii serial number of the device
+  get device 
+  :param serial: the serial number of the device (string).  If not specified, returns the first device found
   : returns LR4: lr4 object, or None if no match was found
   '''
   @staticmethod
-  def getDevice(serialNum):
-    hids=LR4._getHIDRawDevices()
-    device=None
-    for h in hids:
-      device=LR4(h)
-      if (str(device.getSerialNumber().strip()) == str(serialNum.strip())):
-        break
+  def getDevice(serialNum=None):
+    devices=LR4._getDevices()
+    if devices != []:
+      if serialNum is None:  #return first device found if no serial num specified
+        return devices[0]
       else:
-        device.close()
-        device=None 
-      
-    return device
+        device=None
+        for dev in devices:
+          if (str(dev.getSerialNumber().strip()) == str(serialNum.strip())):
+            device=dev 
+            break
+          else:
+            dev.close()
+        return device
+    else:
+      return None  #no device found
 
   '''
   Initialize the LR4
-  :param filename: the filehandle of the hidraw device used by the LR4
+  :param dev: usb.core.Device instance corresponding to the LR4
   '''
   def __init__(self,dev):
     self.usbDevice=dev
     self.usbDevice.reset()
     if(self.usbDevice.is_kernel_driver_active(LR4.INTERFACE_NUM)):
       self.usbDevice.detach_kernel_driver(LR4.INTERFACE_NUM)
-    #self.usbDevice.set_configuration()
     self._readConfig()
     self._configSingleMode()
 
   '''
-  Close the filehandle associated with the LR4
+  Close the device
   '''
   def close(self):
     self.usbDevice.reset()
-    self.usbDevice.releaseInterface()
-    #return self.usbDevice.attach_kernel_driver(LR4.INTERFACE_NUM)
+    return self.usbDevice.attach_kernel_driver(LR4.INTERFACE_NUM)
 
   '''
-  Read from the LR4
+  Read bytes from the LR4
+  :returns: list of 8 bytes as read from the LR4
   '''
   def _read(self):
     #x=self.epin.read(8,timeout=1000)
@@ -86,11 +100,6 @@ class LR4(object):
     return list(self.usbDevice.read(LR4.ENDPOINT_IN,8,timeout=1000))
 
 
-  '''
-  read raw bytes 
-  '''
-  def _readBytes(self):
-    return list(self.usbDevice.read(LR4.ENDPOINT_IN,8,timeout=1000))
 
   '''
   Write to the LR4
@@ -114,6 +123,7 @@ class LR4(object):
 
   '''
   write configuration to device
+  :param cmd: bytearray to write to the device
   '''
   def _writeConfig(self,cmd):
     self._write(cmd)
@@ -121,12 +131,6 @@ class LR4(object):
     #occasionally it seems to get misconfigured?
     # note that equality of cmd and config hinges on the first byte being the same, which is coincidental, but convenient
     while (cmd != self.config): 
-#      print "CMD"
-#      print cmd
-#      print type(cmd)
-#      print "CFG"
-#      print self.config
-#      print type(self.config)
       self._write(cmd)
       self._readConfig()
       time.sleep(0.5)
@@ -157,16 +161,14 @@ class LR4(object):
     cmd[0]=LR4.CMD_GET_PRODUCT_INFO
     cmd[1]=70
     self._write(cmd)
-    res1=self._readBytes()
+    res1=self._read()
     #get next 4 bytes of PRODUCT_INFO.SERIAL_NUMBER
     cmd[1]=76
     self._write(cmd)
-    res2=self._readBytes()
-
+    res2=self._read()
     res = res1[2:] + res2[2:5]
-
-    serialNum = "".join(map(ord,res))
-    return str(res).rstrip(' \t\r\n\0')
+    serialNum = ''.join(map(chr,res))
+    return serialNum.rstrip(' \t\r\n\0')
       
   '''
   begin a distance measurement
@@ -193,15 +195,51 @@ class LR4(object):
     self._endMeasurement()
     return int(( dat[2]<<8 ) + dat[1])
 
+
+'''
+test output function.  Just a helper for the other test* functions
+:param dev: LR4 object to test
+'''
+def testOutput(dev):
+    try:
+      print "serial number '%s'"%(dev.getSerialNumber())
+      print "\t%d mm"%dev.measure()
+    except Exception as e:
+      print "\terr" 
+
+
+'''
+test ability to query multiple devices
+'''
+def testMultiDevices():
+  devices = LR4.listDevices()
+  #print devices
+  for dev in devices:
+    if dev is not None:
+      testOutput(dev)
+      dev.close()
+  
+'''
+test ability to retrieve single device
+'''
+def testSingleDevice(serial=None):
+  if serial is not None:
+    dev = LR4.getDevice(serialNum=serial)
+  else:
+    dev = LR4.getDevice()
+  if (dev is not None):
+    testOutput(dev)
+    dev.close()
+
+
 if __name__=="__main__":
 #  l = LR4('/dev/hidraw10')
 #  print "%s is serial number '%s'"%(dev,l.getSerialNumber())
 #  l.close()
-  devices = LR4.listDevices()
-  #print devices
-  for (i,dev) in enumerate(devices):
-    try:
-      print "%s: serial number '%s'"%(i,dev.getSerialNumber())
-      print "\t%d mm"%dev.measure()
-    except IndexError as e:
-      print "\tfuck" 
+  print "test single device, auto"
+  testSingleDevice()
+  print "test single device, specified"
+  testSingleDevice(serial='001980')
+  print "test multiple devices"
+  testMultiDevices()
+
