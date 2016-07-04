@@ -77,7 +77,9 @@ class LR4(object):
   '''
   def __init__(self,dev):
     self.usbDevice=dev
+    #configuration stuffs...
     self.usbDevice.reset()
+    self.usbDevice.set_configuration()
     if(self.usbDevice.is_kernel_driver_active(LR4.INTERFACE_NUM)):
       self.usbDevice.detach_kernel_driver(LR4.INTERFACE_NUM)
     self._readConfig()
