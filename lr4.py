@@ -140,17 +140,25 @@ class LR4(object):
   '''
   def _configSingleMode(self):
     #     [set config          lsb config    msb config              interval
-    cfg1 = self.config[1]
-    cfg1 &= ~0x10
-    cfg1 |= 0x08
-    cmd = [LR4.CMD_SET_CONFIG,0b00001000,0x00,0x00,0x00,0,0,0]
+    self._readConfig()
+    cfg1 = self.config[1] 
+    cfg2 = self.config[2]
+
+    cfg1 &= ~0b10010000
+    cfg1 |=  0b00001000
+    
+    cfg2 &= ~0b01111111
+    cfg2 |=  0b00000000
+
+    cmd = [LR4.CMD_SET_CONFIG,cfg1,cfg2,0,0,0,0,0]
+    #print "config"
+    #print cmd
     self._writeConfig(cmd)
 
     cmd = [0]*8
     cmd[0] = LR4.CMD_WRITE_CONFIG
     self._write(cmd)
 
-  
   '''
   get Serial Number from device
   :returns: serial number string
@@ -189,6 +197,7 @@ class LR4(object):
   :returns: distance in mm, integer value
   '''
   def measure(self):
+    self._readConfig()
     self._startMeasurement()
     # read in data
     dat = self._read()
@@ -229,6 +238,7 @@ def testSingleDevice(serial=None):
     dev = LR4.getDevice()
   if (dev is not None):
     testOutput(dev)
+    #print dev._readConfig()
     dev.close()
 
 
@@ -242,4 +252,5 @@ if __name__=="__main__":
   testSingleDevice(serial='001980')
   print "test multiple devices"
   testMultiDevices()
+
 
