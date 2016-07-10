@@ -114,13 +114,16 @@ class LR4(object):
 
   '''
   Initialize the LR4
-  :param dev: usb.core.Device instance corresponding to the LR4
+  :param dev: usb.Device instance corresponding to the LR4
   '''
   def __init__(self,dev):
-    self.usbDevice=dev
-    self.usbDevice.reset()
-    if(self.usbDevice.is_kernel_driver_active(LR4.INTERFACE_NUM)):
-      self.usbDevice.detach_kernel_driver(LR4.INTERFACE_NUM)
+    self.usbDeviceHandle=dev.open()
+    #self.usbDevice.reset()
+    try:
+      self.usbDeviceHandle.detachKernelDriver(LR4.INTERFACE_NUM)
+    except:
+      pass
+    self.usbDeviceHandle.claimInterface(LR4.INTERFACE_NUM)
     self._readConfig()
     self._configSingleMode()
 
@@ -128,8 +131,7 @@ class LR4(object):
   Close the device
   '''
   def close(self):
-    self.usbDevice.reset()
-    return self.usbDevice.attach_kernel_driver(LR4.INTERFACE_NUM)
+    return self.usbDeviceHandle.releaseInterface()
 
   '''
   Read bytes from the LR4
@@ -138,7 +140,14 @@ class LR4(object):
   def _read(self):
     #x=self.epin.read(8,timeout=1000)
     #return x
-    return list(self.usbDevice.read(LR4.ENDPOINT_IN,8,timeout=4000))
+    ret = None
+    numFails = 0 
+    while (ret is None and numFails < 10):
+        try:
+            ret = list(self.usbDeviceHandle.interruptRead(LR4.ENDPOINT_IN,8,1000))
+        except:
+            numFails += 1
+    return ret
 
 
 
@@ -147,7 +156,7 @@ class LR4(object):
   :param arr: array of ints to write to LR4
   '''
   def _write(self,arr):
-    return self.usbDevice.write(LR4.ENDPOINT_OUT,bytearray(arr))
+    return self.usbDeviceHandle.interruptWrite(LR4.ENDPOINT_OUT,bytearray(arr))
  
   '''
   Read in configuration data from the LR4
@@ -274,7 +283,7 @@ def testSingleDevice(serial=None):
 
 class MyError(Exception): pass
 
-if __name__=="__main__":
+if __name__=="__pain__":
 #  l = LR4('/dev/hidraw10')
 #  print "%s is serial number '%s'"%(dev,l.getSerialNumber())
 #  l.close()
@@ -293,4 +302,25 @@ if __name__=="__main__":
                 
                 
  
-
+if __name__=="__main__":
+    busses = usb.busses()
+    for bus in busses:
+        for dev in bus.devices:
+            #print "%d:%d"%(dev.idVendor,dev.idProduct)
+            if (dev.idVendor == LR4.ID_VENDOR and dev.idProduct == LR4.ID_PRODUCT):
+                lr4 = LR4(dev)
+                print lr4.measure()
+                lr4.close()
+            elif (False):
+                print "found LR4, opening!"
+                dh = dev.open()
+                print "detach kernel"
+                try:
+                    dh.detachKernelDriver(LR4.INTERFACE_NUM)
+                except:
+                    print "\tno detach"
+                print "claim"
+                dh.claimInterface(LR4.INTERFACE_NUM)
+                #TODO do some work
+                print "release"
+                dh.releaseInterface()
