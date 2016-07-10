@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import usb
 import time
+import sys
 
 '''
 Copyright (c) 2016 Troy Denton
@@ -29,12 +30,52 @@ class LR4(object):
   ENDPOINT_IN=0x81
   ENDPOINT_OUT=0x02
   '''
-  communication defines
+  OUT Report - Command Packet Defintion
+
+  0x00 - Get Configuration: Generates an IN report packet with current ConfigValue, ConfigInterval, and other status
+
+  0x01 - Set Config: Sets new values into global variables ConfigValue and ConfigInterval
+                    Byte [2:1] = New value for ConfigValue
+                    Byte [4:3] = New value for ConfigInterval
+
+  0x02 - Write Config: Writes current values for ConfigValue and ConfigInterval to EEPROM
+
+  0x03 - Get Product Info: Gets six bytes from the product information data structure
+                    Byte [1] = Offset into Product Info data structure
   '''
   CMD_GET_CONFIG=0x00
   CMD_SET_CONFIG=0x01
   CMD_WRITE_CONFIG=0x02
   CMD_GET_PRODUCT_INFO=0x03
+  '''
+  IN Report - Status Packet Definition
+
+  0x00 - Distance Measurement: Data sent to host for normal distance measurement mode
+				Byte [0] = STS_MEASUREMENT_DATA
+				Byte [1] = Measurement in millimeters (lsb)
+				Byte [2] = Measurement in millimeters (msb)
+				Byte [3] = 0
+				Byte [4] = Progress flags (lsb)
+				Byte [5] = Progress flags (msb)
+				Byte [6] = TLM100 state
+				Byte [7] = Sample count
+  0x01 - Configuration Data: Sends current values for ConfigValue and ConfigInterval to host
+				Byte [0] = STS_CONFIG_DATA
+				Byte [1] = ConfigValue (lsb)
+				Byte [2] = ConfigValue (msb)
+				Byte [3] = IntervalValue (lsb)
+				Byte [4] = IntervalValue (msb)
+				Byte [5] = 0
+				Byte [6] = 0
+				Byte [7] = 0
+  0x02 - Product Information: Sends a six byte chunk of the product information data structure
+				Byte [0] = STS_PRODUCT_INFO
+				Byte [1] = Byte offset into product info data structure
+				Byte [7:2] = Data bytes
+  '''
+  STS_MEASUREMENT_DATA=0x00
+  STS_CONFIG_DATA=0x01  
+  STS_PRODUCT_INFO=0x02
 
   '''
   :returns: array of usb devices corresponding to the LR4 from porcupine labs
@@ -97,7 +138,7 @@ class LR4(object):
   def _read(self):
     #x=self.epin.read(8,timeout=1000)
     #return x
-    return list(self.usbDevice.read(LR4.ENDPOINT_IN,8,timeout=1000))
+    return list(self.usbDevice.read(LR4.ENDPOINT_IN,8,timeout=4000))
 
 
 
@@ -143,7 +184,7 @@ class LR4(object):
     cfg1 = self.config[1]
     cfg1 &= ~0x10
     cfg1 |= 0x08
-    cmd = [LR4.CMD_SET_CONFIG,0b00001000,0x00,0x00,0x00,0,0,0]
+    cmd = [LR4.CMD_SET_CONFIG,0x00,0x00,0x00,0x00,0,0,0]
     self._writeConfig(cmd)
 
     cmd = [0]*8
@@ -231,15 +272,25 @@ def testSingleDevice(serial=None):
     testOutput(dev)
     dev.close()
 
+class MyError(Exception): pass
 
 if __name__=="__main__":
 #  l = LR4('/dev/hidraw10')
 #  print "%s is serial number '%s'"%(dev,l.getSerialNumber())
 #  l.close()
-  print "test single device, auto"
-  testSingleDevice()
-  print "test single device, specified"
-  testSingleDevice(serial='001980')
-  print "test multiple devices"
-  testMultiDevices()
+#  dev = LR4.getDevice(serialNum = '001980')
+#  print dev.getSerialNumber()
+#  cmd = [LR4.CMD_SET_CONFIG,0,0x80,dev.config[3],dev.config[4],0,0,0]
+#  dev._write(cmd)
+#  print dev._readConfig()
+#  dat = dev._read()
+#  print int(( dat[2]<<8 ) + dat[1])
+#  cmd = [LR4.CMD_SET_CONFIG,0,0,dev.config[3],dev.config[4],0,0,0]
+#  dev._write(cmd)
+#  print dev._readConfig()
+    testMultiDevices()
+
+                
+                
+ 
 
