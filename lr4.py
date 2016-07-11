@@ -312,30 +312,7 @@ def testSingleDevice(serial=None):
 
  
 if __name__=="__main__":
-    busses = usb.busses()
-    for bus in busses:
-        for dev in bus.devices:
-            #print "%d:%d"%(dev.idVendor,dev.idProduct)
-            if (dev.idVendor == LR4.ID_VENDOR and dev.idProduct == LR4.ID_PRODUCT):
-                lr4 = LR4(dev)
-                try:
-                    while True:
-                        print lr4.getSerialNumber()
-                        print "\t%s"%str(lr4.measure())
-                        #time.sleep(0.1)
-                except: 
-                    print "exiting..."
-                lr4.close()
-            elif (False):
-                print "found LR4, opening!"
-                dh = dev.open()
-                print "detach kernel"
-                try:
-                    dh.detachKernelDriver(LR4.INTERFACE_NUM)
-                except:
-                    print "\tno detach"
-                print "claim"
-                dh.claimInterface(LR4.INTERFACE_NUM)
-                #TODO do some work
-                print "release"
-                dh.releaseInterface()
+    print "Testing multiple devices...."
+    testMultiDevices()
+    print "Testing single device..."
+    testSingleDevice()
