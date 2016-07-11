@@ -9,7 +9,7 @@ MIT licensed
 * requires python 2.7
 * Ubuntu + similar - use pyusb 0.4.3 from the repos
  * sudo apt-get install python-usb
-* pyusb-1.0 branch requires pyusb 1.0 or greater
+* Alternatively, the `pyusb-1.0` branch requires pyusb 1.0 or greater
  * `sudo pip install --pre pyusb`
 
 ##Device Permissions
@@ -23,7 +23,7 @@ make sure to add yourself to the `plugdev` group:
 `sudo usermod -aG plugdev <your username>`
 
 ##Known working environments
-Currently tested/working on ubuntu desktop 14.04 LTS 64 bit, python 2.7. 
+Currently tested/working on ubuntu desktop 14.04 LTS 64 bit, python 2.7, using pyusb-0.4.3 from the Ubuntu repos (as of July 11 2016).  The pyusb-1.0 branch appears to be flakey on some, but not all, Ubuntu 14.04 LTS 64 bit machines.  The reason for this is TBD
 
 Running `python lr4.py` will perform a test of the module (ensure you have followed the directions under *Device Permissions* and have an LR4 unit plugged in)
 
