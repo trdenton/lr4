@@ -82,7 +82,13 @@ class LR4(object):
   '''
   @staticmethod
   def _getDevices():
-    return map(LR4,list(usb.core.find(find_all=True,idVendor=LR4.ID_VENDOR, idProduct=LR4.ID_PRODUCT)))
+    devices = []
+    busses = usb.busses()
+    for bus in busses:
+      for dev in bus.devices:
+        if (dev.idVendor == LR4.ID_VENDOR and dev.idProduct == LR4.ID_PRODUCT):
+          devices.append( LR4(dev) )
+    return devices
 
   
   @staticmethod
@@ -183,19 +189,39 @@ class LR4(object):
     while (cmd != self.config): 
       self._write(cmd)
       self._readConfig()
-      time.sleep(0.5)
+      time.sleep(0.1)
 
   '''
   set rangefinder to single mode, trigger on run bit
   '''
   def _configSingleMode(self):
     #     [set config          lsb config    msb config              interval
-    cfg1 = self.config[1]
-    cfg1 &= ~0x10
-    cfg1 |= 0x08
-    cmd = [LR4.CMD_SET_CONFIG,0x00,0x00,0x00,0x00,0,0,0]
+
+    '''
+    bits 2:0 = 100 (cm)
+    bits 4:3 = 01 (single measurement)
+    bits 6:5 = 00 (seconds)
+    bits 8:7 = 00 run bit
+    bit 9 = 0 (keyboard mode disabled)
+    bit 10 = 0 (disable double measurement)
+    bit 11 = 0 (Disable error filter)
+    bit 12 = 0 (only send changes)
+    bit 13 = 0 led 1 = 0
+    bit 14 = 0 led 2 = 0
+    bit 15 - tthe run bit
+    bit 31:16  - interval = 0
+
+
+    0x000C
+    '''
+
+    #cfg1 = self.config[1]
+    #cfg1 &= ~0x10
+    #cfg1 |= 0x08
+    cmd = [LR4.CMD_SET_CONFIG,0x0C,0x00,0x00,0x00,0,0,0]
     self._writeConfig(cmd)
 
+    #commit to nonvolatile
     cmd = [0]*8
     cmd[0] = LR4.CMD_WRITE_CONFIG
     self._write(cmd)
@@ -243,6 +269,8 @@ class LR4(object):
     # read in data
     dat = self._read()
     self._endMeasurement()
+    if dat is None:
+        print "dat was none!"
     return int(( dat[2]<<8 ) + dat[1])
 
 
@@ -281,26 +309,7 @@ def testSingleDevice(serial=None):
     testOutput(dev)
     dev.close()
 
-class MyError(Exception): pass
 
-if __name__=="__pain__":
-#  l = LR4('/dev/hidraw10')
-#  print "%s is serial number '%s'"%(dev,l.getSerialNumber())
-#  l.close()
-#  dev = LR4.getDevice(serialNum = '001980')
-#  print dev.getSerialNumber()
-#  cmd = [LR4.CMD_SET_CONFIG,0,0x80,dev.config[3],dev.config[4],0,0,0]
-#  dev._write(cmd)
-#  print dev._readConfig()
-#  dat = dev._read()
-#  print int(( dat[2]<<8 ) + dat[1])
-#  cmd = [LR4.CMD_SET_CONFIG,0,0,dev.config[3],dev.config[4],0,0,0]
-#  dev._write(cmd)
-#  print dev._readConfig()
-    testMultiDevices()
-
-                
-                
  
 if __name__=="__main__":
     busses = usb.busses()
@@ -309,7 +318,13 @@ if __name__=="__main__":
             #print "%d:%d"%(dev.idVendor,dev.idProduct)
             if (dev.idVendor == LR4.ID_VENDOR and dev.idProduct == LR4.ID_PRODUCT):
                 lr4 = LR4(dev)
-                print lr4.measure()
+                try:
+                    while True:
+                        print lr4.getSerialNumber()
+                        print "\t%s"%str(lr4.measure())
+                        #time.sleep(0.1)
+                except: 
+                    print "exiting..."
                 lr4.close()
             elif (False):
                 print "found LR4, opening!"
