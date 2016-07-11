@@ -7,7 +7,9 @@ MIT licensed
 ##Prerequisites
 * only tested on Ubuntu Desktop 14.04 LTS at the moment
 * requires python 2.7
-* requires pyusb 1.0 or greater
+* Ubuntu + similar - use pyusb 0.4.3 from the repos
+ * sudo apt-get install python-usb
+* pyusb-1.0 branch requires pyusb 1.0 or greater
  * `sudo pip install --pre pyusb`
 
 ##Device Permissions
