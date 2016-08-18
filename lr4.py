@@ -134,6 +134,12 @@ class LR4(object):
     self._configSingleMode()
 
   '''
+  Reset the device
+  '''
+  def reset(self):
+    return self.usbDeviceHandle.reset()
+
+  '''
   Close the device
   '''
   def close(self):
@@ -151,7 +157,10 @@ class LR4(object):
     while (ret is None and numFails < 10):
         try:
             ret = list(self.usbDeviceHandle.interruptRead(LR4.ENDPOINT_IN,8,1000))
-        except:
+            #print "\tRECEIVED: " + ",".join(map(str,ret))
+        except Exception as e:
+            #print e
+            #print "\t\t\t\tnumFails %d"%numFails
             numFails += 1
     return ret
 
@@ -172,6 +181,8 @@ class LR4(object):
     cmd[0]=LR4.CMD_GET_CONFIG
     self._write(cmd)
     self.config=self._read()
+    while(self.config[0] != LR4.STS_CONFIG_DATA):
+        self.config=self._read()
     #config = result[1] + (result[2]<<8) + (status[3]<<16) + (status[4]<<24)
     #return config
     return self.config
@@ -238,10 +249,17 @@ class LR4(object):
     cmd[1]=70
     self._write(cmd)
     res1=self._read()
+
+    #loop until we get product info packet
+    while(res1[0]!= LR4.STS_PRODUCT_INFO):
+        res1=self._read()
+        time.sleep(.01)
+    #print "received res1=" + ",".join(map(str,res1))
     #get next 4 bytes of PRODUCT_INFO.SERIAL_NUMBER
     cmd[1]=76
     self._write(cmd)
     res2=self._read()
+    #print "received res2=" + ",".join(map(str,res2))
     res = res1[2:] + res2[2:5]
     serialNum = ''.join(map(chr,res))
     return serialNum.rstrip(' \t\r\n\0')
@@ -268,6 +286,9 @@ class LR4(object):
     self._startMeasurement()
     # read in data
     dat = self._read()
+    while(dat[0]!=LR4.STS_MEASUREMENT_DATA):
+        dat = self._read()
+        time.sleep(0.010)
     self._endMeasurement()
     if dat is None:
         print "dat was none!"
@@ -281,9 +302,10 @@ test output function.  Just a helper for the other test* functions
 def testOutput(dev):
     try:
       print "serial number '%s'"%(dev.getSerialNumber())
-      print "\t%d mm"%dev.measure()
+      print "\td=%dmm"%dev.measure()
     except Exception as e:
       print "\terr" 
+      print e
 
 
 '''
@@ -314,5 +336,5 @@ def testSingleDevice(serial=None):
 if __name__=="__main__":
     print "Testing multiple devices...."
     testMultiDevices()
-    print "Testing single device..."
-    testSingleDevice()
+    #print "Testing single device..."
+    #testSingleDevice()
