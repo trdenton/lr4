@@ -1,4 +1,4 @@
 #!/bin/bash
 while true; do
-	./lr4.py 2>&1 | tee /tmp/lr4.log
+	./lr4.py >> /tmp/lr4.log
 done

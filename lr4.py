@@ -286,7 +286,7 @@ class LR4(object):
     self._startMeasurement()
     # read in data
     dat = self._read()
-    while(dat[0]!=LR4.STS_MEASUREMENT_DATA):
+    while(type(dat)!=list): #and dat[0]!=LR4.STS_MEASUREMENT_DATA):
         dat = self._read()
         time.sleep(0.010)
     self._endMeasurement()
